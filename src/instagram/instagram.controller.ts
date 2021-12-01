@@ -1,34 +1,51 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from 'src/common/guards';
+import { RequestWithUserId } from 'src/common/interfaces';
+import { PublicInstagram } from 'src/common/interfaces/instagram';
+import { AddInstagramDto } from './dto/add-instagram.dto';
 import { InstagramService } from './instagram.service';
-import { CreateInstagramDto } from './dto/create-instagram.dto';
-import { UpdateInstagramDto } from './dto/update-instagram.dto';
 
-@Controller('instagram')
+@Controller('instagrams')
+@ApiTags('Instagrams')
 export class InstagramController {
   constructor(private readonly instagramService: InstagramService) {}
 
   @Post()
-  create(@Body() createInstagramDto: CreateInstagramDto) {
-    return this.instagramService.create(createInstagramDto);
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.CREATED)
+  async addOne(
+    @Body() addInstagramDto: AddInstagramDto,
+    @Req() req: RequestWithUserId,
+  ): Promise<PublicInstagram> {
+    return this.instagramService.addOne(addInstagramDto, req);
   }
 
   @Get()
-  findAll() {
-    return this.instagramService.findAll();
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async findAll(@Req() req: RequestWithUserId): Promise<PublicInstagram[]> {
+    return this.instagramService.findAll(req);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.instagramService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateInstagramDto: UpdateInstagramDto) {
-    return this.instagramService.update(+id, updateInstagramDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.instagramService.remove(+id);
+  @Put('active/:id')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async updateActive(
+    @Param('id') id: string,
+    @Req() req: RequestWithUserId,
+  ): Promise<PublicInstagram> {
+    return this.instagramService.updateActive(id, req);
   }
 }

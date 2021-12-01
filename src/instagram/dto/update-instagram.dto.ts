@@ -1,4 +1,4 @@
 import { PartialType } from '@nestjs/swagger';
-import { CreateInstagramDto } from './create-instagram.dto';
+import { AddInstagramDto } from './add-instagram.dto';
 
-export class UpdateInstagramDto extends PartialType(CreateInstagramDto) {}
+export class UpdateInstagramDto extends PartialType(AddInstagramDto) {}

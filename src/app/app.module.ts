@@ -1,14 +1,20 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import config from '../config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule } from 'src/auth/auth.module';
+import { InstagramModule } from 'src/instagram/instagram.module';
+import { TypeOrmConfigService } from '../config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      load: [config],
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
+    TypeOrmModule.forRootAsync({
+      useClass: TypeOrmConfigService,
     }),
+    InstagramModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

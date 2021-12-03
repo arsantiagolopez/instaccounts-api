@@ -16,9 +16,10 @@ export class InstagramService {
 
   async addOne(
     addInstagramDto: AddInstagramDto,
-    { userId }: RequestWithUserId,
+    req: RequestWithUserId,
   ): Promise<PublicInstagram> {
     let { username, password } = addInstagramDto;
+    const { userId } = req;
     username = username.toLowerCase();
 
     const instagramExists = await this.instagramRepository.findOne({
@@ -27,7 +28,7 @@ export class InstagramService {
 
     if (instagramExists) {
       throw new HttpException(
-        'Instagram account already exists',
+        'Instagram account already exists.',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -48,7 +49,8 @@ export class InstagramService {
     return publicProfile;
   }
 
-  async findAll({ userId }: RequestWithUserId): Promise<PublicInstagram[]> {
+  async findAll(req: RequestWithUserId): Promise<PublicInstagram[]> {
+    const { userId } = req;
     const instagrams = await this.instagramRepository.find({ userId });
 
     // Return in order of creation (newest last)
@@ -62,8 +64,9 @@ export class InstagramService {
 
   async updateActive(
     id: string,
-    { userId }: RequestWithUserId,
+    req: RequestWithUserId,
   ): Promise<PublicInstagram> {
+    const { userId } = req;
     const instagram = await this.instagramRepository.findOne({
       id,
       userId,
@@ -71,12 +74,20 @@ export class InstagramService {
 
     if (!instagram) {
       throw new HttpException(
-        "Instagram account doesn't exist",
+        "Instagram account doesn't exist.",
         HttpStatus.BAD_REQUEST,
       );
     }
 
     instagram.lastActive = new Date();
     return await this.instagramRepository.save(instagram);
+  }
+
+  async authorize(
+    addInstagramDto: AddInstagramDto,
+    req: RequestWithUserId,
+  ): Promise<any> { // Promise<PublicInstagram>
+    let { username, password } = addInstagramDto;
+    const { userId } = req;
   }
 }

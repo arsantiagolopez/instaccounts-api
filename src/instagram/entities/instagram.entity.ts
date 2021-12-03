@@ -16,7 +16,7 @@ export class Instagram {
   @Column({ nullable: false, unique: true })
   username!: string;
 
-  @Column({ nullable: false, select: false })
+  @Column({ nullable: false })
   password!: string;
 
   @Column({ nullable: true })

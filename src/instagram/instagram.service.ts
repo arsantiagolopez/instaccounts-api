@@ -1,9 +1,13 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import * as argon2 from 'argon2';
+import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
+import * as fs from 'fs';
 import { RequestWithUserId } from 'src/common/interfaces';
 import { PublicInstagram } from 'src/common/interfaces/instagram';
+import { PostService } from 'src/post/post.service';
 import { Repository } from 'typeorm';
+import { DownloadProfileDto } from './dto';
 import { AddInstagramDto } from './dto/add-instagram.dto';
 import { Instagram } from './entities';
 
@@ -12,6 +16,7 @@ export class InstagramService {
   constructor(
     @InjectRepository(Instagram)
     private instagramRepository: Repository<Instagram>,
+    private postService: PostService,
   ) {}
 
   async addOne(
@@ -47,6 +52,50 @@ export class InstagramService {
       await this.instagramRepository.save(instagram);
 
     return publicProfile;
+  }
+
+  async updateOne(
+    username: string,
+    data: { [key: string]: any },
+    req: RequestWithUserId,
+  ): Promise<PublicInstagram> {
+    const { userId } = req;
+
+    const instagram = await this.instagramRepository.findOne({
+      username,
+      userId,
+    });
+
+    if (!instagram) {
+      throw new HttpException(
+        `Instagram @${username} doesn't exist.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    for (let key in data) {
+      (instagram as any)[key] = data[key];
+    }
+
+    return this.instagramRepository.save(instagram);
+  }
+
+  async deleteOne(
+    username: string,
+    req: RequestWithUserId,
+  ): Promise<PublicInstagram | void> {
+    const { userId } = req;
+    const instagram = await this.instagramRepository.findOne({
+      userId,
+      username,
+    });
+    if (!instagram) {
+      throw new HttpException(
+        "Instagram account doesn't exist.",
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    await this.instagramRepository.remove(instagram);
   }
 
   async findAll(req: RequestWithUserId): Promise<PublicInstagram[]> {
@@ -86,8 +135,198 @@ export class InstagramService {
   async authorize(
     addInstagramDto: AddInstagramDto,
     req: RequestWithUserId,
-  ): Promise<any> { // Promise<PublicInstagram>
+  ): Promise<PublicInstagram> {
     let { username, password } = addInstagramDto;
+
+    let success = true;
+    let instagram = null;
+
+    // Attempt login
+    const script: ChildProcessWithoutNullStreams = spawn(
+      'source env/bin/activate && instaloader',
+      [
+        '--dirname-pattern=../../web/public/{profile}',
+        `--login ${username}`,
+        `--password ${password}`,
+      ],
+      {
+        cwd: `${__dirname}/../../instaloader`,
+        shell: true,
+      },
+    );
+
+    // Logs & errors
+    script.stderr.on('data', (data) => {
+      const log = data.toString();
+      if (log.includes('error')) {
+        success = false;
+      }
+    });
+
+    // Process exited
+    script.on('error', (err) => {
+      success = false;
+    });
+
+    await new Promise<void>((resolve) => {
+      script.on('exit', () => {
+        if (success) {
+          console.log('Successful login!');
+        } else {
+          console.log('Login unsuccessful. Wrong credentials.');
+        }
+        resolve();
+      });
+    });
+
+    // If logged in, authorize account. Else delete
+    if (success) {
+      const data = { isAuthorized: true };
+      instagram = await this.updateOne(username, data, req);
+    } else {
+      await this.deleteOne(username, req);
+      throw new HttpException(
+        'Login unsuccessful. Wrong credentials.',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    return instagram;
+  }
+
+  async downloadProfile(
+    downloadProfileDto: DownloadProfileDto,
+    req: RequestWithUserId,
+  ): Promise<void> {
+    const { username } = downloadProfileDto;
     const { userId } = req;
+
+    let success = true;
+
+    // Guarantee only authorized profiles can be downloaded
+    const instagram = await this.instagramRepository.findOne({
+      username,
+      userId,
+    });
+
+    if (!instagram?.isAuthorized) {
+      throw new HttpException(
+        "Instagram isn't authorized. Make sure you're logged in.",
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    // Download profile
+    const script: ChildProcessWithoutNullStreams = spawn(
+      'source env/bin/activate && instaloader',
+      [
+        '--no-compress-json',
+        '--no-videos',
+        '--dirname-pattern=../../web/public/accounts/{profile}',
+        `${username}`,
+      ],
+      {
+        cwd: `${__dirname}/../../instaloader`,
+        shell: true,
+      },
+    );
+
+    // Logs & errors
+    script.stderr.on('data', (data) => {
+      const log = data.toString();
+      if (log.includes('error')) {
+        success = false;
+      }
+    });
+
+    // Process exited
+    script.on('error', (err) => {
+      success = false;
+    });
+
+    await new Promise<void>((resolve) => {
+      script.on('exit', () => {
+        if (success) {
+          console.log(`Profile for ${username} downloaded!`);
+        } else {
+          console.log('Profile could not be downloaded.');
+        }
+        resolve();
+      });
+    });
+
+    // Update instagram entities with recently downloaded data
+    // await this.updateEntitiesWithLocalData(instagram)
+  }
+
+  // async updateEntitiesWithLocalData(instagram: Instagram) {
+  //   const { username } = instagram
+
+  //   // Get data folder path
+  //   const path = `${__dirname}/../../instaloader/${username}`
+  // }
+
+  async updateEntitiesWithLocalData({ username }: { username: string }) {
+    const instagram = await this.instagramRepository.findOne({ username });
+
+    if (!instagram) {
+      return console.log('******* ERROR: CANNOT FIND INSTAGRAM.');
+    }
+
+    // Get data folder path
+    const dir = `${__dirname}/../../../web/public/accounts/${username}/`;
+
+    // Check if data for profile exists
+    if (!fs.existsSync(dir)) {
+      throw new HttpException(
+        `No local data found for @${username} instagram.`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // await this.updateProfileWithLocalData(instagram, dir, username);
+    await this.postService.updatePostsWithLocalData(instagram, dir, username);
+  }
+
+  async updateProfileWithLocalData(
+    instagram: Instagram,
+    dir: string,
+    username: string,
+  ): Promise<void> {
+    const files = fs.readdirSync(dir);
+    const dataFilename = files.find((str) => str.includes(username));
+    const dataPath = dir + dataFilename;
+    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+
+    const {
+      full_name: name,
+      biography: bio,
+      edge_followed_by: { count: followers },
+      edge_follow: { count: following },
+    } = data.node;
+
+    const profilePictureFilename = files.find((str) =>
+      str.includes('profile_pic'),
+    );
+    // Relative to /public/ path
+    const image = `/accounts/${username}/${profilePictureFilename}`;
+
+    interface PartialInstagram {
+      [key: string]: string;
+    }
+
+    const fields: PartialInstagram = {
+      image,
+      name,
+      bio,
+      followers,
+      following,
+    };
+
+    for (const key in fields) {
+      (instagram as any)[key] = fields[key];
+    }
+
+    await this.instagramRepository.save(instagram);
   }
 }

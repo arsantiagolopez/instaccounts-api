@@ -15,10 +15,12 @@ import {
   ApiCreatedResponse,
   ApiOkResponse,
   ApiTags,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AuthGuard } from 'src/common/guards';
 import { RequestWithUserId } from 'src/common/interfaces';
 import { PublicInstagram } from 'src/common/interfaces/instagram';
+import { DownloadProfileDto } from './dto';
 import { AddInstagramDto } from './dto/add-instagram.dto';
 import { InstagramService } from './instagram.service';
 
@@ -59,12 +61,32 @@ export class InstagramController {
     return this.instagramService.updateActive(id, req);
   }
 
-  @Post()
+  @Post('authorize')
   @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'Logged in successfully.' })
+  @ApiUnauthorizedResponse({ description: 'Login unsuccessful.' })
   async authorize(
     @Body() addInstagramDto: AddInstagramDto,
     @Req() req: RequestWithUserId,
-  ) {
+  ): Promise<PublicInstagram> {
     return this.instagramService.authorize(addInstagramDto, req);
+  }
+
+  @Post('download')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'Profile downloaded successfully.' })
+  @ApiUnauthorizedResponse({ description: 'Profile could not be downloaded.' })
+  async downloadProfile(
+    @Body() downloadProfileDto: DownloadProfileDto,
+    @Req() req: RequestWithUserId,
+  ): Promise<void> {
+    return this.instagramService.downloadProfile(downloadProfileDto, req);
+  }
+
+  @Post('test')
+  async test(@Body() dto: { username: string }): Promise<void> {
+    return this.instagramService.updateEntitiesWithLocalData(dto);
   }
 }

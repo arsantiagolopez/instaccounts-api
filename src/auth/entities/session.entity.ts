@@ -22,11 +22,11 @@ export class Session {
   @Column({ type: 'varchar', unique: true })
   sessionToken!: string;
 
-  @Column({ type: 'uuid' })
-  userId!: string;
-
   @Column({ type: 'varchar', transformer: transformer.date })
   expires!: string;
+
+  @Column({ type: 'uuid' })
+  userId!: string;
 
   @ManyToOne(() => User, (user) => user.sessions)
   user!: User;

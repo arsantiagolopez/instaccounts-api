@@ -19,12 +19,12 @@ export class User {
   @Column({ type: 'varchar', nullable: true })
   image!: string | null;
 
-  @OneToMany(() => Session, (session) => session.userId)
+  @OneToMany(() => Session, (session) => session.user)
   sessions!: Session[];
 
-  @OneToMany(() => Account, (account) => account.userId)
+  @OneToMany(() => Account, (account) => account.user)
   accounts!: Account[];
 
-  @OneToMany(() => Instagram, (instagram) => instagram.userId)
+  @OneToMany(() => Instagram, (instagram) => instagram.user)
   instagrams!: Instagram[];
 }

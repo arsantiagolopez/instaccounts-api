@@ -75,7 +75,5 @@ export class BotService {
     script.on('exit', (exitCode) => {
       console.log('Script ended with code: ' + exitCode);
     });
-
-    return 'success';
   }
 }

@@ -19,9 +19,6 @@ export class Account {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'uuid' })
-  userId!: string;
-
   @Column({ type: 'varchar' })
   type!: string;
 
@@ -61,6 +58,9 @@ export class Account {
 
   @Column({ type: 'varchar', nullable: true })
   oauth_token!: string | null;
+
+  @Column({ type: 'uuid' })
+  userId!: string;
 
   @ManyToOne(() => User, (user) => user.accounts, {
     createForeignKeyConstraints: true,

@@ -3,10 +3,12 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../auth/entities';
+import { Post } from '../../post/entities';
 
 @Entity('instagrams')
 export class Instagram {
@@ -22,11 +24,20 @@ export class Instagram {
   @Column({ nullable: true })
   name?: string;
 
-  @Column({ nullable: false, default: false })
-  isAuthorized!: boolean;
+  @Column({ nullable: true })
+  bio?: string;
+
+  @Column({ nullable: true })
+  followers?: number;
+
+  @Column({ nullable: true })
+  following?: number;
 
   @Column({ nullable: true })
   image?: string;
+
+  @Column({ nullable: false, default: false })
+  isAuthorized!: boolean;
 
   @Column({ nullable: false, default: new Date() })
   lastActive!: Date;
@@ -35,15 +46,21 @@ export class Instagram {
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP(6)',
   })
-  public createdAt!: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({
     type: 'timestamp',
     default: () => 'CURRENT_TIMESTAMP(6)',
     onUpdate: 'CURRENT_TIMESTAMP(6)',
   })
-  public updatedAt!: Date;
+  updatedAt!: Date;
+
+  @Column({ type: 'uuid' })
+  userId!: string;
 
   @ManyToOne(() => User, (user) => user.instagrams)
-  userId!: string;
+  user!: User;
+
+  @OneToMany(() => Post, (post) => post.instagram)
+  posts!: Post[];
 }

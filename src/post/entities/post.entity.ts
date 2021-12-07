@@ -31,12 +31,12 @@ export class Post {
   likes!: number;
 
   @Column({ nullable: false })
-  timestamp!: string;
+  date!: Date;
 
   @Column({ nullable: false, default: false })
   isCarousel!: boolean;
 
-  @Column('varchar', { array: true, nullable: true })
+  @Column({ type: 'varchar', array: true, nullable: true })
   carouselImages?: string[];
 
   @Column({ type: 'uuid' })

@@ -18,10 +18,6 @@ export class PostService {
     return posts.reverse();
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} post`;
-  }
-
   async updatePostsWithLocalData(
     instagram: Instagram,
     dir: string,
@@ -43,7 +39,7 @@ export class PostService {
         location,
         edge_media_to_comment: { count: comments },
         edge_media_preview_like: { count: likes },
-        taken_at_timestamp: timestamp,
+        taken_at_timestamp,
         edge_sidecar_to_children,
       } = data.node;
 
@@ -72,6 +68,9 @@ export class PostService {
         image = image.replace('.jpg', '_1.jpg');
       }
 
+      // Date: Convert from UNIX to Date()
+      const date = new Date(taken_at_timestamp * 1000);
+
       return {
         id: v4(),
         username,
@@ -82,7 +81,7 @@ export class PostService {
         location: location?.name ?? null,
         comments,
         likes,
-        timestamp,
+        date,
         isCarousel,
         carouselImages,
         instagramId: instagram.id,

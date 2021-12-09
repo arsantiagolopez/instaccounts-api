@@ -69,7 +69,7 @@ export class PostService {
       }
 
       // Date: Convert from UNIX to Date()
-      const date = new Date(taken_at_timestamp * 1000);
+      const timestamp = new Date(taken_at_timestamp * 1000);
 
       return {
         id: v4(),
@@ -81,7 +81,7 @@ export class PostService {
         location: location?.name ?? null,
         comments,
         likes,
-        date,
+        timestamp,
         isCarousel,
         carouselImages,
         instagramId: instagram.id,

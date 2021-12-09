@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -81,12 +82,26 @@ export class InstagramController {
   async downloadProfile(
     @Body() downloadProfileDto: DownloadProfileDto,
     @Req() req: RequestWithUserId,
-  ): Promise<void> {
+  ): Promise<PublicInstagram | void> {
     return this.instagramService.downloadProfile(downloadProfileDto, req);
   }
 
+  @Delete(':username')
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiOkResponse({ description: 'Profile downloaded successfully.' })
+  @ApiUnauthorizedResponse({ description: 'Profile could not be downloaded.' })
+  async deleteOne(
+    @Param('username') username: string,
+    @Req() req: RequestWithUserId,
+  ): Promise<PublicInstagram> {
+    return this.instagramService.deleteOne(username, req);
+  }
+
   @Post('test')
-  async test(@Body() dto: { username: string }): Promise<void> {
+  async test(
+    @Body() dto: { username: string },
+  ): Promise<PublicInstagram | void> {
     return this.instagramService.updateEntitiesWithLocalData(dto);
   }
 }

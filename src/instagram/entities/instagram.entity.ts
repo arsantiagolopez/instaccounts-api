@@ -58,7 +58,7 @@ export class Instagram {
   @Column({ type: 'uuid' })
   userId!: string;
 
-  @ManyToOne(() => User, (user) => user.instagrams)
+  @ManyToOne(() => User, (user) => user.instagrams, { onDelete: 'CASCADE' })
   user!: User;
 
   @OneToMany(() => Post, (post) => post.instagram)

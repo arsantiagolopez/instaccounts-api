@@ -1,3 +1,3 @@
-import { TypeOrmConfigService } from './typeorm.service';
+import { swaggerConfig } from './swaggerConfig';
 
-export { TypeOrmConfigService };
+export { swaggerConfig };

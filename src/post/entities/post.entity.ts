@@ -31,7 +31,7 @@ export class Post {
   likes!: number;
 
   @Column({ nullable: false })
-  date!: Date;
+  timestamp!: Date;
 
   @Column({ nullable: false, default: false })
   isCarousel!: boolean;
@@ -42,6 +42,8 @@ export class Post {
   @Column({ type: 'uuid' })
   instagramId!: string;
 
-  @ManyToOne(() => Instagram, (instagram) => instagram.posts)
+  @ManyToOne(() => Instagram, (instagram) => instagram.posts, {
+    onDelete: 'CASCADE',
+  })
   instagram!: Instagram;
 }

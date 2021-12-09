@@ -56,7 +56,7 @@ export class InstagramService {
 
   async updateOne(
     username: string,
-    data: { [key: string]: any },
+    data: Record<string, any>,
     req: RequestWithUserId,
   ): Promise<PublicInstagram> {
     const { userId } = req;
@@ -83,7 +83,7 @@ export class InstagramService {
   async deleteOne(
     username: string,
     req: RequestWithUserId,
-  ): Promise<PublicInstagram | void> {
+  ): Promise<PublicInstagram> {
     const { userId } = req;
     const instagram = await this.instagramRepository.findOne({
       userId,
@@ -95,7 +95,16 @@ export class InstagramService {
         HttpStatus.BAD_REQUEST,
       );
     }
-    await this.instagramRepository.remove(instagram);
+
+    // Remove downloaded local files
+    const filesDir = `${__dirname}/../../../web/public/accounts/${username}/`;
+
+    fs.rmdirSync(filesDir, { recursive: true });
+
+    console.log(`${username}'s instagram contents deleted!`);
+
+    // Remove document from database
+    return await this.instagramRepository.remove(instagram);
   }
 
   async findAll(req: RequestWithUserId): Promise<PublicInstagram[]> {
@@ -145,7 +154,7 @@ export class InstagramService {
     const script: ChildProcessWithoutNullStreams = spawn(
       'source env/bin/activate && instaloader',
       [
-        '--dirname-pattern=../../web/public/{profile}',
+        '--dirname-pattern=../../web/public/accounts/{profile}',
         `--login ${username}`,
         `--password ${password}`,
       ],
@@ -197,7 +206,7 @@ export class InstagramService {
   async downloadProfile(
     downloadProfileDto: DownloadProfileDto,
     req: RequestWithUserId,
-  ): Promise<void> {
+  ): Promise<PublicInstagram | void> {
     const { username } = downloadProfileDto;
     const { userId } = req;
 
@@ -256,17 +265,14 @@ export class InstagramService {
     });
 
     // Update instagram entities with recently downloaded data
-    // await this.updateEntitiesWithLocalData(instagram)
+    return await this.updateEntitiesWithLocalData(instagram);
   }
 
-  // async updateEntitiesWithLocalData(instagram: Instagram) {
-  //   const { username } = instagram
-
-  //   // Get data folder path
-  //   const path = `${__dirname}/../../instaloader/${username}`
-  // }
-
-  async updateEntitiesWithLocalData({ username }: { username: string }) {
+  async updateEntitiesWithLocalData({
+    username,
+  }: {
+    username: string;
+  }): Promise<PublicInstagram | void> {
     const instagram = await this.instagramRepository.findOne({ username });
 
     if (!instagram) {
@@ -284,15 +290,22 @@ export class InstagramService {
       );
     }
 
-    // await this.updateProfileWithLocalData(instagram, dir, username);
+    // Data already downloaded, update database with downloaded data
+    const profile = await this.updateProfileWithLocalData(
+      instagram,
+      dir,
+      username,
+    );
     await this.postService.updatePostsWithLocalData(instagram, dir, username);
+
+    return profile;
   }
 
   async updateProfileWithLocalData(
     instagram: Instagram,
     dir: string,
     username: string,
-  ): Promise<void> {
+  ): Promise<PublicInstagram> {
     const files = fs.readdirSync(dir);
     const dataFilename = files.find((str) => str.includes(username));
     const dataPath = dir + dataFilename;
@@ -327,6 +340,6 @@ export class InstagramService {
       (instagram as any)[key] = fields[key];
     }
 
-    await this.instagramRepository.save(instagram);
+    return await this.instagramRepository.save(instagram);
   }
 }

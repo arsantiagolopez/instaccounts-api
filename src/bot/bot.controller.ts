@@ -7,12 +7,14 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from 'src/common/guards';
 import { RequestWithUserId } from 'src/common/interfaces';
 import { BotService } from './bot.service';
 import { RunScriptDto } from './dto';
 
-@Controller('bot')
+@Controller('bots')
+@ApiTags('Bots')
 export class BotController {
   constructor(private readonly botService: BotService) {}
 

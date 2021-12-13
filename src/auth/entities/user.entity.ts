@@ -1,3 +1,4 @@
+import { App } from 'src/app/entities';
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { Instagram } from '../../instagram/entities';
 import { Account, Session } from './index';
@@ -27,4 +28,7 @@ export class User {
 
   @OneToMany(() => Instagram, (instagram) => instagram.user)
   instagrams!: Instagram[];
+
+  @OneToMany(() => App, (app) => app.user)
+  apps!: App[];
 }

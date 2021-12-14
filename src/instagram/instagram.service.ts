@@ -99,7 +99,7 @@ export class InstagramService {
     // Remove downloaded local files
     const filesDir = `${__dirname}/../../../web/public/accounts/${username}/`;
 
-    fs.rmdirSync(filesDir, { recursive: true });
+    fs.rmSync(filesDir, { recursive: true });
 
     console.log(`${username}'s instagram contents deleted!`);
 
@@ -149,6 +149,12 @@ export class InstagramService {
 
     let success = true;
     let instagram = null;
+
+    // Create account folder if not exists
+    const accountFolder = `${__dirname}/../../../web/public/accounts/${username}/`;
+    if (!fs.existsSync(accountFolder)) {
+      fs.mkdirSync(accountFolder);
+    }
 
     // Attempt login
     const script: ChildProcessWithoutNullStreams = spawn(
